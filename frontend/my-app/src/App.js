@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
+
 function App() {
   const [users, setUsers] = useState([]);
   const [queryId, setQueryId] = useState('');
@@ -10,7 +12,7 @@ function App() {
   const [newComment, setNewComment] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:8000/users')
+    axios.get(`${API_BASE}/users`)
       .then(res => setUsers(res.data))
       .catch(err => console.error(err.message));
     
@@ -19,7 +21,7 @@ function App() {
 
   const loadComments = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/comments');
+      const response = await axios.get(`${API_BASE}/comments`);
       setComments(response.data);
     } catch (err) {
       console.error('Error loading comments:', err.message);
@@ -28,14 +30,17 @@ function App() {
 
   const handleQuery = async (e) => {
     e.preventDefault();
+    const id = parseInt(queryId);
+    if (isNaN(id) || id <= 0) {
+      alert('Please enter a valid positive user ID');
+      return;
+    }
     try {
-      const response = await axios.post('http://localhost:8000/user', `SELECT id, name FROM users WHERE id = ${queryId}`, 
-        {
-          headers : {
-            "Content-Type" : 'text/plain'
-          }
+      const response = await axios.post(`${API_BASE}/user`, String(id), {
+        headers: {
+          "Content-Type": 'text/plain'
         }
-      );
+      });
       setQueriedUser(response.data);
     } catch (err) {
       console.error('Error querying user:', err.message);
@@ -45,8 +50,12 @@ function App() {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
+    if (!newComment.trim() || newComment.length > 500) {
+      alert('Comment cannot be empty or too long (max 500 chars)');
+      return;
+    }
     try {
-      await axios.post('http://localhost:8000/comment', newComment, {
+      await axios.post(`${API_BASE}/comment`, newComment, {
         headers: {
           "Content-Type": 'text/plain'
         }
@@ -82,7 +91,7 @@ function App() {
               <h3>Queried User:</h3>
               {queriedUser.map(u => (
                 <p key={u.id}>
-                  ID: {u.id} — Name: {u.name} — Password: {u.password}
+                  ID: {u.id} — Name: {u.name}
                 </p>
               ))}
             </div>
@@ -126,7 +135,7 @@ function App() {
                     }}
                   >
                     {comment.content}
-                  </div>
+                </div>
               ))
             )}
           </div>
