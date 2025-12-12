@@ -19,6 +19,11 @@ db.run(`CREATE TABLE IF NOT EXISTS users (
   password TEXT NOT NULL
 )`);
 
+db.run(`CREATE TABLE IF NOT EXISTS comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  content TEXT NOT NULL
+)`);
+
 async function insertRandomUsers() {
   try {
     const urls = [1, 2, 3].map(() => axios.get('https://randomuser.me/api/'));
@@ -30,7 +35,8 @@ async function insertRandomUsers() {
         const password = u.login.password;
 
         db.run(
-        `INSERT INTO users (name, password) VALUES ('${fullName}', '${password}')`,
+        `INSERT INTO users (name, password) VALUES (?, ?)`,
+        [fullName, password],
         (err) => {
             if (err) console.error(err.message);
         }
@@ -48,8 +54,7 @@ app.get('/populate', async (req, res) => {
 });
 
 app.post('/query', async (req, res) => {
-  db.run(req.body)
-  res.send('Inserted 3 users into database.');
+  res.status(403).send('Forbidden');
 });
 
 app.get('/users', (req, res) => {
@@ -64,31 +69,37 @@ app.get('/users', (req, res) => {
 });
 
 app.post('/user', (req, res) => {
-    console.log(req.body);
+    const userId = parseInt(req.body);
+    if (isNaN(userId)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+    }
     
     db.all(
-        req.body,
-        [], 
+        `SELECT id, name FROM users WHERE id = ?`,
+        [userId], 
         (err, rows) => {
             if (err) {
-                console.error('SQL Error:', err.message);
-                return res.status(500).json({ error: err.message });
+                return res.status(500).json({ error: 'Database error' });
             }
-            console.log('Query results:', rows);
             res.json(rows);
         }
     );
 });
 
 app.post('/comment', (req, res) => {
-  const comment = req.body; 
+  const comment = req.body;
   
-  db.all(
-    `INSERT INTO comments (content) VALUES (?)`,[comment] ,
+  if (!comment || comment.length > 500) {
+    return res.status(400).json({ error: 'Invalid comment' });
+  }
+  
+  db.run(
+    `INSERT INTO comments (content) VALUES (?)`,
+    [comment],
     (err) => {
       if (err) {
         console.error(err.message);
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: 'Database error' });
       }
       res.json({ success: true });
     }
@@ -104,11 +115,6 @@ app.get('/comments', (req, res) => {
     res.json(rows);
   });
 });
-
-db.run(`CREATE TABLE IF NOT EXISTS comments (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  content TEXT NOT NULL
-)`);
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);
