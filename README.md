@@ -1,6 +1,6 @@
 Rapport de Patch de Sécurité
 
-Vue d'ensemble
+Vue d'ensemble :
 Ce document présente le travail complet de patch de sécurité effectué sur une application web. L'objectif était d'identifier, analyser et corriger les vulnérabilités de sécurité tout en documentant la méthodologie et les solutions apportées.
 
 Méthodologie de détection des vulnérabilités
